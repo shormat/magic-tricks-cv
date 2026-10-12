@@ -14,3 +14,4 @@ concat_list.txt
 # Datasets and run logs
 challenge_video_*/
 *.log
+!assets/*.mp4

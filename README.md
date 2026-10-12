@@ -70,7 +70,7 @@ Each group needs an `annotations_group_<id>.json` file:
 ```
 
 Each trick runs from its `start_time` to the start of the next trick, or to the end of the video for the last one.
-Trick 2 needs a green-screen video (`video.mp4` by default, see `--overlay`).
+Trick 2 replaces the figurine with a green-screen video: `assets/gojo_green_screen.mp4` by default, or your own with `--overlay`.
 
 ## Usage
 
@@ -98,7 +98,7 @@ Main options: `--threads`, `--overlay`, `--model`, `--annotations`, `--no-assemb
 ## Credits
 
 - **Object detection**: [Grounding DINO](https://github.com/IDEA-Research/GroundingDINO) by IDEA Research, using the [`grounding-dino-tiny`](https://huggingface.co/IDEA-Research/grounding-dino-tiny) checkpoint through Hugging Face Transformers.
-- **Green-screen overlay** (trick 2): [Gojo Dancing Green Screen | Anime Dance Loop](https://www.youtube.com/watch?v=yWujGQpgSR0) by [Green Screen Effects](https://www.youtube.com/@GreenScreenEffects). Gojo Satoru is a character from *Jujutsu Kaisen* by Gege Akutami. The video is not included in this repository.
+- **Green-screen overlay** (trick 2): [Gojo Dancing Green Screen | Anime Dance Loop](https://www.youtube.com/watch?v=yWujGQpgSR0) by [Green Screen Effects](https://www.youtube.com/@GreenScreenEffects). Gojo Satoru is a character from *Jujutsu Kaisen* by Gege Akutami. `assets/gojo_green_screen.mp4` is that video, cropped around the character and without audio.
 
 ## Authors
 

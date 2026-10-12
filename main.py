@@ -8,6 +8,7 @@ Examples:
 
 import argparse
 import logging
+from pathlib import Path
 
 from magic_tricks.annotation import Annotation
 from magic_tricks.assemble import assemble
@@ -15,6 +16,7 @@ from magic_tricks.detection import MODEL_ID, GroundingDino
 from magic_tricks.pipeline import TrickPipeline, output_path_for
 
 ALL_TRICKS = (1, 2, 3)
+DEFAULT_OVERLAY = Path(__file__).parent / "assets" / "gojo_green_screen.mp4"
 
 
 def parse_args():
@@ -30,7 +32,7 @@ def parse_args():
                         help="annotation file pattern, {} is replaced by the group id")
     parser.add_argument("--prefix-video-name", action="store_true",
                         help='video files are named "video_<video_name>"')
-    parser.add_argument("--overlay", default="video.mp4",
+    parser.add_argument("--overlay", default=str(DEFAULT_OVERLAY),
                         help="green-screen video replacing the figurine in trick 2")
     parser.add_argument("--model", default=MODEL_ID, help="Grounding DINO model id")
     parser.add_argument("--preview", action="store_true",
