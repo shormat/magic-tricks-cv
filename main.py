@@ -46,7 +46,8 @@ def main():
     args = parse_args()
     logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO,
                         format="%(asctime)s [%(levelname)s] %(message)s", datefmt="%H:%M:%S")
-    logging.getLogger("httpx").setLevel(logging.WARNING)
+    for name in ("httpx", "httpx2"):  # Hugging Face Hub HTTP request logs
+        logging.getLogger(name).setLevel(logging.WARNING)
 
     detector = GroundingDino(args.model)
 

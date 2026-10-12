@@ -95,6 +95,18 @@ Outputs:
 
 Main options: `--threads`, `--overlay`, `--model`, `--annotations`, `--no-assemble`, `-v`. Run `uv run main.py --help` for the full list.
 
+## Anonymizing videos before sharing
+
+`blur_faces.py` blurs people's heads, for videos shared without their consent. Run it on the **source** videos, then run `main.py` on the blurred copies. This way the intro, the tricks and the background plates are anonymized, while the effects added afterwards stay sharp.
+
+```bash
+uv run blur_faces.py videos/fixed.mp4 videos/dynamic.mp4 --out-dir blurred/
+cp videos/annotations_group_2.json blurred/
+cd blurred && uv run ../main.py --groups 2 --mode Static
+```
+
+Heads are found with Grounding DINO on every 3rd frame (`--stride`). Each head stays blurred 0.4 s before and after its detection (`--hold`), with an enlarged box, to cover frames where the detector misses it. Head-like objects, such as the figurine, are ignored unless they sit at the top of a detected person. Always watch the result before publishing.
+
 ## Credits
 
 - **Object detection**: [Grounding DINO](https://github.com/IDEA-Research/GroundingDINO) by IDEA Research, using the [`grounding-dino-tiny`](https://huggingface.co/IDEA-Research/grounding-dino-tiny) checkpoint through Hugging Face Transformers.
