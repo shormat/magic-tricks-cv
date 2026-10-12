@@ -10,3 +10,7 @@ venv/
 *.avi
 *.mkv
 concat_list.txt
+
+# Datasets and run logs
+challenge_video_*/
+*.log

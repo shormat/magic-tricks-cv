@@ -49,7 +49,7 @@ cd magic-tricks-cv
 uv sync
 ```
 
-The model uses a CUDA GPU automatically when one is available. Otherwise it runs on the CPU, which is much slower.
+The model uses a GPU automatically when one is available. Otherwise it runs on the CPU, which is much slower.
 
 ## Input data
 
