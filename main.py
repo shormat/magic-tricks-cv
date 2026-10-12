@@ -27,6 +27,7 @@ def parse_args():
                         help="fixed camera (Static) or moving camera (Dynamic)")
     parser.add_argument("--tricks", type=int, nargs="+", choices=ALL_TRICKS, default=list(ALL_TRICKS),
                         help="tricks to (re)process")
+    parser.add_argument("--fps", type=float, default=30, help="frame rate of the generated videos")
     parser.add_argument("--threads", type=int, default=8, help="number of processing threads")
     parser.add_argument("--annotations", default="annotations_group_{}.json",
                         help="annotation file pattern, {} is replaced by the group id")
@@ -62,6 +63,7 @@ def main():
                 prefix_video_name=args.prefix_video_name,
                 preview=args.preview,
                 overlay_path=args.overlay,
+                fps=args.fps,
             ).run()
 
         if args.preview or args.no_assemble:
@@ -74,6 +76,7 @@ def main():
             intro_end=annotation.get_start_time(1),
             segments=[output_path_for(annotation_file, t, args.mode) for t in ALL_TRICKS],
             output=f"final_output_group_{group_id}_{args.mode}.mp4",
+            fps=args.fps,
         )
 
 

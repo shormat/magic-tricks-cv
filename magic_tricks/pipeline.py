@@ -38,13 +38,15 @@ def output_path_for(annotation_file, trick_id, video_type):
 
 class TrickPipeline:
     def __init__(self, annotation_file, trick_id, video_type="Static", *, detector, nthreads=4,
-                 prefix_video_name=False, preview=False, overlay_path="video.mp4", output_path=None):
+                 prefix_video_name=False, preview=False, overlay_path="video.mp4", output_path=None,
+                 fps=OUTPUT_FPS):
         self.trick_id = trick_id
         self.video_type = video_type
         self.spec = get_trick(trick_id, video_type)
         self.detector = detector
         self.n_workers = max(1, nthreads - 1)
         self.preview = preview
+        self.fps = fps
         self.output_path = output_path or output_path_for(annotation_file, trick_id, video_type)
 
         annotation = Annotation(annotation_file, video_type, prefix_video_name)
@@ -69,6 +71,7 @@ class TrickPipeline:
             first_frame=first_frame,
             markers=MarkerTracker(first_frame) if self.spec.uses_markers else None,
             overlay=LoopingVideo(overlay_path),
+            fps=fps,
         )
         self.ctx.state = self.spec.init_state(self.ctx)
 
@@ -82,7 +85,7 @@ class TrickPipeline:
         log.info("Video: %s", video_name)
         log.info("Trick %d (%s): %s", trick_id, video_type, annotation.get_trick_name(trick_id))
         log.info("Segment: %ds -> %ds (~%d frames)", self.start_time, self.end_time,
-                 (self.end_time - self.start_time) * OUTPUT_FPS)
+                 (self.end_time - self.start_time) * fps)
         if not preview:
             log.info("Output: %s", self.output_path)
 
@@ -132,7 +135,7 @@ class TrickPipeline:
     # Stages
 
     def _read(self):
-        """Read the trick segment, resampled to OUTPUT_FPS by dropping frames."""
+        """Read the trick segment, resampled to self.fps by dropping frames."""
         try:
             start_frame = int(self.start_time * self.input_fps)
             end_frame = int(self.end_time * self.input_fps)
@@ -147,7 +150,7 @@ class TrickPipeline:
                     break
                 if (position - start_frame) / self.input_fps >= next_time:
                     self._put(self._frames, (index, to_frame_size(frame)))
-                    next_time += 1.0 / OUTPUT_FPS
+                    next_time += 1.0 / self.fps
                     index += 1
             log.info("Read %d frames", index)
         except Exception as e:
@@ -202,7 +205,7 @@ class TrickPipeline:
         self._put(self._rendered, _STOP)
 
     def _write(self):
-        writer = cv2.VideoWriter(self.output_path, cv2.VideoWriter_fourcc(*"mp4v"), OUTPUT_FPS, FRAME_SIZE)
+        writer = cv2.VideoWriter(self.output_path, cv2.VideoWriter_fourcc(*"mp4v"), self.fps, FRAME_SIZE)
         if not writer.isOpened():
             raise IOError(f"Cannot open video writer for {self.output_path}")
         count = 0

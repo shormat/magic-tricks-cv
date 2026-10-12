@@ -20,6 +20,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("videos", nargs="+", type=Path)
     parser.add_argument("--out-dir", type=Path, required=True, help="where to write the blurred videos")
+    parser.add_argument("--fps", type=float, help="also resample the output to this frame rate")
     parser.add_argument("--stride", type=int, default=3, help="detect heads on every n-th frame")
     parser.add_argument("--hold", type=float, default=0.4,
                         help="seconds a detected head stays blurred before and after its detection")
@@ -36,7 +37,7 @@ def main():
         out = args.out_dir / video.name
         if out.resolve() == video.resolve():
             raise SystemExit(f"Refusing to overwrite {video}")
-        blur_heads(str(video), str(out), detector, stride=args.stride, hold=args.hold)
+        blur_heads(str(video), str(out), detector, stride=args.stride, hold=args.hold, fps=args.fps)
 
 
 if __name__ == "__main__":

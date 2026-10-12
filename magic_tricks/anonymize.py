@@ -64,23 +64,34 @@ def blur_box(frame, box):
     frame[y1:y2, x1:x2] = cv2.GaussianBlur(pixelated, (k, k), 0)
 
 
-def detect_heads(path, detector, stride):
-    """{frame index: [head boxes]} for every `stride`-th frame."""
+def read_frames(path, fps=None):
+    """Yield the frames of a video, dropping frames to keep about `fps` per second if given."""
     cap = cv2.VideoCapture(path)
-    total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    heads, index = {}, 0
-    while True:
+    step = cap.get(cv2.CAP_PROP_FPS) / fps if fps else 1.0
+    next_kept, index = 0.0, 0
+    try:
+        while True:
+            if index >= next_kept - 1e-6:
+                ok, frame = cap.read()
+                if not ok:
+                    return
+                yield frame
+                next_kept += max(step, 1.0)
+            elif not cap.grab():
+                return
+            index += 1
+    finally:
+        cap.release()
+
+
+def detect_heads(path, detector, stride, fps=None):
+    """{frame index: [head boxes]} for every `stride`-th frame (indices after resampling)."""
+    heads = {}
+    for index, frame in enumerate(read_frames(path, fps)):
         if index % stride == 0:
-            ok, frame = cap.read()
-            if not ok:
-                break
             heads[index] = find_heads(detector(frame, PROMPT, TEXT_THRESHOLD), frame.shape)
             if len(heads) % 100 == 0:
-                log.info("Detected heads on %d/%d frames", index, total)
-        elif not cap.grab():
-            break
-        index += 1
-    cap.release()
+                log.info("Detected heads on %d frames", index)
     return heads
 
 
@@ -91,42 +102,41 @@ def _frame_rate(path):
     return out.stdout.strip()
 
 
-def blur_heads(src, dst, detector, stride=3, hold=0.4):
-    """Write `dst`: `src` with every detected head blurred, audio kept as is."""
+def blur_heads(src, dst, detector, stride=3, hold=0.4, fps=None):
+    """Write `dst`: `src` with every detected head blurred, audio kept as is.
+
+    With `fps`, the output is also resampled to that frame rate.
+    """
     cap = cv2.VideoCapture(src)
-    fps = cap.get(cv2.CAP_PROP_FPS)
+    out_fps = fps or cap.get(cv2.CAP_PROP_FPS)
     width, height = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     cap.release()
 
     log.info("Pass 1/2: detecting heads in %s", src)
-    heads = detect_heads(src, detector, stride)
-    window = int(round(hold * fps))
+    heads = detect_heads(src, detector, stride, fps)
+    window = int(round(hold * out_fps))
     log.info("Found heads on %d of %d sampled frames", sum(1 for b in heads.values() if b), len(heads))
 
     log.info("Pass 2/2: writing %s", dst)
     ffmpeg = subprocess.Popen(
         ["ffmpeg", "-y", "-loglevel", "error",
-         "-f", "rawvideo", "-pix_fmt", "bgr24", "-s", f"{width}x{height}", "-r", _frame_rate(src), "-i", "-",
+         "-f", "rawvideo", "-pix_fmt", "bgr24", "-s", f"{width}x{height}",
+         "-r", str(fps) if fps else _frame_rate(src), "-i", "-",
          "-i", src, "-map", "0:v", "-map", "1:a?",
          "-c:v", "libx264", "-crf", "18", "-preset", "medium", "-pix_fmt", "yuv420p", "-c:a", "copy", dst],
         stdin=subprocess.PIPE,
     )
-    cap = cv2.VideoCapture(src)
-    index = 0
+    count = 0
     try:
-        while True:
-            ok, frame = cap.read()
-            if not ok:
-                break
+        for index, frame in enumerate(read_frames(src, fps)):
             start = (index - window) // stride * stride
             for j in range(max(0, start), index + window + 1, stride):
                 for box in heads.get(j, ()):
                     blur_box(frame, box)
             ffmpeg.stdin.write(np.ascontiguousarray(frame).tobytes())
-            index += 1
+            count += 1
     finally:
-        cap.release()
         ffmpeg.stdin.close()
         if ffmpeg.wait() != 0:
             raise RuntimeError(f"ffmpeg failed writing {dst}")
-    log.info("Saved %d frames to %s", index, dst)
+    log.info("Saved %d frames to %s", count, dst)

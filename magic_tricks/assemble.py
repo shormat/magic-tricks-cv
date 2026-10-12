@@ -21,19 +21,19 @@ def has_audio(path):
     return result.stdout.strip() != ""
 
 
-def normalize(src, out):
-    """Re-encode to 1080p30 H.264 + stereo AAC (adding a silent track if needed) so the parts
+def normalize(src, out, fps):
+    """Re-encode to 1080p H.264 at `fps` + stereo AAC (adding a silent track if needed) so the parts
     can be concatenated without re-encoding."""
     args = ["-i", str(src)]
     if not has_audio(src):
         args += ["-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=48000", "-shortest"]
-    args += ["-vf", "scale=1920:1080", "-r", "30", "-pix_fmt", "yuv420p",
+    args += ["-vf", "scale=1920:1080", "-r", str(fps), "-pix_fmt", "yuv420p",
              "-c:v", "libx264", "-crf", "18", "-preset", "slow",
              "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-ac", "2", str(out)]
     _ffmpeg(*args)
 
 
-def assemble(source_video, intro_end, segments, output):
+def assemble(source_video, intro_end, segments, output, fps=30):
     """Concatenate source_video[0:intro_end] followed by the given segment files."""
     with tempfile.TemporaryDirectory(prefix="magic_tricks_") as tmp:
         tmp = Path(tmp)
@@ -59,7 +59,7 @@ def assemble(source_video, intro_end, segments, output):
         normalized = []
         for i, part in enumerate(parts):
             out = tmp / f"part_{i}.mp4"
-            normalize(part, out)
+            normalize(part, out, fps)
             normalized.append(out)
 
         concat_list = tmp / "concat.txt"
