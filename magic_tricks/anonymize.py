@@ -15,33 +15,33 @@ from .geometry import box_area, box_center, clip_box, point_in_box, to_int_box
 
 log = logging.getLogger(__name__)
 
-PROMPT = "a human head . a face . a person ."
+# The figurine is listed so its head can be told apart from a person's.
+PROMPT = "a human head . a face . a person . a small figurine ."
 TEXT_THRESHOLD = 0.25
-CONFIDENT_HEAD = 0.45  # accepted on its own
-PERSON_THRESHOLD = 0.3
-HEAD_ZONE = 0.4  # a weaker head is accepted in the top 40% of a person box
+FIGURINE_THRESHOLD = 0.4
 MAX_HEAD_AREA_RATIO = 0.05  # larger "faces" are false positives (e.g. the table)
 GROW = 0.25
 
 
 def find_heads(detections, frame_shape):
-    """Head boxes among the detections, ignoring head-like objects such as figurines."""
+    """Head boxes among the detections, ignoring the figurine's head.
+
+    The threshold is low on purpose: distant heads score low, and blurring a
+    few wrong spots is better than leaving a face visible.
+    """
     frame_area = frame_shape[0] * frame_shape[1]
-    persons = [to_int_box(d.box) for d in detections
-               if "person" in d.label and d.score >= PERSON_THRESHOLD]
+    figurines = [to_int_box(d.box) for d in detections
+                 if "figurine" in d.label and d.score >= FIGURINE_THRESHOLD]
     heads = []
     for det in detections:
         box = to_int_box(det.box)
-        if not ("head" in det.label or "face" in det.label):
+        if "figurine" in det.label or not ("head" in det.label or "face" in det.label):
             continue
         if box_area(box) / frame_area > MAX_HEAD_AREA_RATIO:
             continue
-        cx, cy = box_center(box)
-        in_head_zone = any(
-            point_in_box((cx, cy), p) and cy <= p[1] + HEAD_ZONE * (p[3] - p[1]) for p in persons
-        )
-        if det.score >= CONFIDENT_HEAD or in_head_zone:
-            heads.append(box)
+        if any(point_in_box(box_center(box), f) for f in figurines):
+            continue
+        heads.append(box)
     return heads
 
 
