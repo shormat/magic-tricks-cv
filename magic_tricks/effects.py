@@ -58,12 +58,17 @@ def paste_masked(frame, patch, mask, center):
     frame[y1:y2, x1:x2][keep] = patch[src][keep]
 
 
-def restore_background(frame, box, background):
-    """Paint the background plate over a box."""
-    box = clip_box(box, frame.shape)
-    if box is not None:
-        x1, y1, x2, y2 = box
-        frame[y1:y2, x1:x2] = background[y1:y2, x1:x2]
+def erase_masked(frame, box, mask, margin=10, radius=5):
+    """Erase the masked pixels of a box by inpainting them from their surroundings."""
+    x1, y1, x2, y2 = box
+    fh, fw = frame.shape[:2]
+    cx1, cy1 = max(0, x1 - margin), max(0, y1 - margin)
+    cx2, cy2 = min(fw, x2 + margin), min(fh, y2 + margin)
+    region_mask = np.zeros((cy2 - cy1, cx2 - cx1), np.uint8)
+    region_mask[y1 - cy1:y2 - cy1, x1 - cx1:x2 - cx1] = mask
+    # Grow the mask to also cover the object's soft edges and shadow.
+    region_mask = cv2.dilate(region_mask, _KERNEL_5, iterations=2)
+    frame[cy1:cy2, cx1:cx2] = cv2.inpaint(frame[cy1:cy2, cx1:cx2], region_mask, radius, cv2.INPAINT_TELEA)
 
 
 def composite_green_screen(frame, box, overlay, background):

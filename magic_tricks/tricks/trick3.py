@@ -9,7 +9,7 @@ import logging
 import numpy as np
 
 from ..detection import best_per_label
-from ..effects import BLUE_BALL_HSV_WIDE, color_mask, paste_masked, restore_background
+from ..effects import BLUE_BALL_HSV_WIDE, color_mask, erase_masked, paste_masked
 from ..geometry import box_center, clamp_point_to_polygon, clip_box, distance, project_point, suppress_overlaps, to_int_box
 from .base import TrickSpec
 
@@ -98,7 +98,7 @@ def render_static(frame, frame_num, data, ctx):
     ball_box = clip_box(ball_box, frame.shape) if ball_box is not None else None
     if wand is not None and ball_box is not None:
         patch, mask = _cut_ball(frame, ball_box)
-        restore_background(frame, ball_box, ctx.first_frame)
+        erase_masked(frame, ball_box, mask)
         paste_masked(frame, patch, mask, state["ball_pos"])
     return frame
 
@@ -106,7 +106,7 @@ def render_static(frame, frame_num, data, ctx):
 def render_dynamic(frame, frame_num, data, ctx):
     state = ctx.state
     roi = ctx.markers.update_roi(data["corners"], data["ids"])
-    background, h_matrix = ctx.markers.warped_background(ctx.first_frame, data["corners"], data["ids"])
+    h_matrix = ctx.markers.homography(data["corners"], data["ids"])
     wand, ball = data["wand"], data["ball"]
     ball_box = clip_box(data["ball_box"], frame.shape) if data["ball_box"] is not None else None
 
@@ -133,7 +133,7 @@ def render_dynamic(frame, frame_num, data, ctx):
     state["smoothed_pos"] = smoothed
 
     position = clamp_point_to_polygon((int(smoothed[0]), int(smoothed[1])), roi)
-    restore_background(frame, ball_box, background)
+    erase_masked(frame, ball_box, _cut_ball(frame, ball_box)[1])
     paste_masked(frame, state["ball_patch"], state["ball_mask"], position)
     return frame
 

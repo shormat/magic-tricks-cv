@@ -35,6 +35,7 @@ STATIC_PARAMS = Params(text_threshold=0.20, touch_cooldown=1, can_touch_distance
 DYNAMIC_PARAMS = Params(text_threshold=0.3, touch_cooldown=2, can_touch_distance=80,
                         figurine_min_can_state=2, can_diff_threshold=15)
 TOUCH_DISTANCE = 80
+TOUCH_GAP = 1.0  # seconds without any touch after a touch
 
 
 def _object_name(label):
@@ -100,19 +101,32 @@ def analyze_dynamic(frame, detections, ctx):
 
 
 def _update_states(data, state, now, params):
-    """Count a touch when the wand gets close to an object, with a cooldown per object."""
+    """Count a touch on the object closest to the wand, if it is near enough.
+
+    Each object has its own cooldown, and no touch at all is counted for
+    TOUCH_GAP seconds after the previous one, so a wand still resting near
+    one object does not trigger its neighbours.
+    """
+    if now - state["last_any_touch"] <= TOUCH_GAP:
+        return
     dist = data["distances"]
     rules = (
         ("ball", TOUCH_DISTANCE, True),
         ("figurine", TOUCH_DISTANCE, state["can"] >= params.figurine_min_can_state),
         ("can", params.can_touch_distance, state["ball"] >= 2),
     )
-    for name, max_distance, unlocked in rules:
-        if (unlocked and name in dist and dist[name] < max_distance
-                and now - state["last_touch"][name] > params.touch_cooldown):
-            state[name] += 1
-            state["last_touch"][name] = now
-            log.info("Wand touched the %s (state %d) at %.1fs", name, state[name], now)
+    candidates = [
+        (dist[name], name) for name, max_distance, unlocked in rules
+        if unlocked and name in dist and dist[name] < max_distance
+        and now - state["last_touch"][name] > params.touch_cooldown
+    ]
+    if not candidates:
+        return
+    _, name = min(candidates)
+    state[name] += 1
+    state["last_touch"][name] = now
+    state["last_any_touch"] = now
+    log.info("Wand touched the %s (state %d) at %.1fs", name, state[name], now)
 
 
 def _render(frame, frame_num, data, ctx, params):
@@ -153,7 +167,8 @@ def render_dynamic(frame, frame_num, data, ctx):
 
 
 def _init_state(ctx):
-    return {"ball": 0, "can": 0, "figurine": 0, "last_touch": {"ball": 0.0, "can": 0.0, "figurine": 0.0}}
+    return {"ball": 0, "can": 0, "figurine": 0, "last_any_touch": float("-inf"),
+            "last_touch": {"ball": 0.0, "can": 0.0, "figurine": 0.0}}
 
 
 STATIC = TrickSpec(PROMPT, STATIC_PARAMS.text_threshold, analyze_static, render_static,
