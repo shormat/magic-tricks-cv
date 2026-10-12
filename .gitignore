@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+.DS_Store
+
+# Media and generated outputs
+*.mp4
+*.mov
+*.avi
+*.mkv
+concat_list.txt
