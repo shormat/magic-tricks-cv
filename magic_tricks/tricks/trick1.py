@@ -26,8 +26,8 @@ OBJECT_THRESHOLD = 0.4
 OBJECT_MAX_AREA_RATIO = {"ball": 0.03, "can": 0.05, "figurine": 0.05}
 ALL_OBJECTS = set(OBJECT_MAX_AREA_RATIO)
 
-NAPKIN_HSV = (np.array([35, 20, 20]), np.array([85, 255, 255]))
-STATIC_BACKGROUND_HSV = (np.array([35, 40, 40]), np.array([85, 255, 255]))
+NAPKIN_HSV = (np.array([25, 20, 20]), np.array([85, 255, 255]))
+STATIC_BACKGROUND_HSV = (np.array([25, 40, 40]), np.array([85, 255, 255]))
 MIN_NAPKIN_AREA = 1000
 _DILATE_KERNEL = np.ones((15, 15), np.uint8)
 
