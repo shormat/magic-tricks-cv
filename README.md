@@ -94,3 +94,9 @@ Outputs:
 - `final_output_group_<group>_<mode>.mp4`: the original intro followed by the three tricks, normalized to H.264/AAC.
 
 Main options: `--threads`, `--overlay`, `--model`, `--annotations`, `--no-assemble`, `-v`. Run `uv run main.py --help` for the full list.
+
+## Authors
+
+- [@shormat](https://github.com/shormat)
+- [@CorentinXM](https://github.com/CorentinXM)
+- [@GuenfoudiIhabe](https://github.com/GuenfoudiIhabe)

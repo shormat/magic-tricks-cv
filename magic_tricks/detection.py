@@ -9,6 +9,14 @@ MODEL_ID = "IDEA-Research/grounding-dino-tiny"
 Detection = namedtuple("Detection", "score box label")
 
 
+def default_device(torch):
+    if torch.cuda.is_available():
+        return "cuda"
+    if torch.backends.mps.is_available():
+        return "mps"
+    return "cpu"
+
+
 class GroundingDino:
     """Callable detector: frame (BGR) + text prompt -> list of Detection."""
 
@@ -18,7 +26,7 @@ class GroundingDino:
         from transformers import AutoModelForZeroShotObjectDetection, AutoProcessor
 
         self._torch = torch
-        self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = device or default_device(torch)
         self.processor = AutoProcessor.from_pretrained(model_id)
         self.model = AutoModelForZeroShotObjectDetection.from_pretrained(model_id).to(self.device).eval()
 
@@ -37,7 +45,7 @@ class GroundingDino:
             target_sizes=[image.size[::-1]],
         )[0]
         # Recent transformers versions return label ids in "labels" and strings in "text_labels".
-        labels = result.get("text_labels", result["labels"])
+        labels = result["text_labels"] if "text_labels" in result else result["labels"]
         boxes = result["boxes"].cpu().numpy()
         scores = result["scores"].cpu().numpy()
         return [Detection(float(s), b, str(l)) for b, s, l in zip(boxes, scores, labels)]

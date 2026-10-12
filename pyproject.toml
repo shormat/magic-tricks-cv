@@ -3,6 +3,11 @@ name = "magic-tricks"
 version = "0.1.0"
 description = "Video magic tricks with Grounding DINO zero-shot detection, OpenCV and ArUco markers"
 readme = "README.md"
+authors = [
+    { name = "shormat" },
+    { name = "CorentinXM" },
+    { name = "GuenfoudiIhabe" },
+]
 requires-python = ">=3.10"
 dependencies = [
     "numpy>=1.24",
