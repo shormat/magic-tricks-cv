@@ -95,6 +95,11 @@ Outputs:
 
 Main options: `--threads`, `--overlay`, `--model`, `--annotations`, `--no-assemble`, `-v`. Run `uv run main.py --help` for the full list.
 
+## Credits
+
+- **Object detection**: [Grounding DINO](https://github.com/IDEA-Research/GroundingDINO) by IDEA Research, using the [`grounding-dino-tiny`](https://huggingface.co/IDEA-Research/grounding-dino-tiny) checkpoint through Hugging Face Transformers.
+- **Green-screen overlay** (trick 2): [Gojo Dancing Green Screen | Anime Dance Loop](https://www.youtube.com/watch?v=yWujGQpgSR0) by [Green Screen Effects](https://www.youtube.com/@GreenScreenEffects). Gojo Satoru is a character from *Jujutsu Kaisen* by Gege Akutami. The video is not included in this repository.
+
 ## Authors
 
 - [@shormat](https://github.com/shormat)
