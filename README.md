@@ -19,10 +19,10 @@ Every trick runs in two modes:
 ## Architecture
 
 ```
-reader ─▶ detector (GPU) ─▶ N "analyze" workers ─▶ "render" (in order) ─▶ writer / preview
+reader ─▶ detector (GPU, batches) ─▶ N "analyze" workers ─▶ "render" (in order) ─▶ writer / preview
 ```
 
-- The **detector** runs Grounding DINO on every frame.
+- The **detector** runs Grounding DINO on every frame, in batches of 4 frames (`--batch-size`). Frames are resized and normalized on the GPU.
 - The **analyze** workers extract object and marker positions in parallel.
 - **render** applies the effect frame by frame, in order, because tricks keep state between frames (touch counts, ball position, etc.).
 - Each stage sends an end-of-stream signal to the next one, so every thread stops on its own.
@@ -93,7 +93,7 @@ Outputs:
 - `output_trick_<trick>_<mode>_<group>.mp4`: each processed trick (1080p, 30 fps);
 - `final_output_group_<group>_<mode>.mp4`: the original intro followed by the three tricks, normalized to H.264/AAC.
 
-Main options: `--threads`, `--overlay`, `--model`, `--annotations`, `--no-assemble`, `-v`. Run `uv run main.py --help` for the full list.
+Main options: `--threads`, `--batch-size`, `--overlay`, `--model`, `--annotations`, `--no-assemble`, `-v`. Run `uv run main.py --help` for the full list.
 
 ## Anonymizing videos before sharing
 

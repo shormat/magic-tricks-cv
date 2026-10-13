@@ -14,7 +14,8 @@ dependencies = [
     "opencv-contrib-python>=4.8",
     "pillow>=10.0",
     "torch>=2.1",
-    "transformers>=4.40",
+    "torchvision>=0.29.1",
+    "transformers>=5",
 ]
 
 [tool.uv]

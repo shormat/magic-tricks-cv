@@ -1,6 +1,6 @@
 """Multi-threaded processing of one trick segment of a video.
 
-    reader -> detector (GPU) -> N analyze workers -> render (in order) -> writer / preview
+    reader -> detector (GPU, batches of frames) -> N analyze workers -> render (in order) -> writer / preview
 
 Each stage hands a sentinel downstream when it is done, so every thread ends on
 its own once the last frame has been written.
@@ -14,6 +14,7 @@ from pathlib import Path
 import cv2
 
 from .annotation import Annotation
+from .detection import DEFAULT_BATCH_SIZE
 from .effects import LoopingVideo
 from .geometry import MarkerTracker
 from .tricks import OUTPUT_FPS, TrickContext, get_trick
@@ -39,11 +40,12 @@ def output_path_for(annotation_file, trick_id, video_type):
 class TrickPipeline:
     def __init__(self, annotation_file, trick_id, video_type="Static", *, detector, nthreads=4,
                  prefix_video_name=False, preview=False, overlay_path="video.mp4", output_path=None,
-                 fps=OUTPUT_FPS):
+                 fps=OUTPUT_FPS, batch_size=DEFAULT_BATCH_SIZE):
         self.trick_id = trick_id
         self.video_type = video_type
         self.spec = get_trick(trick_id, video_type)
         self.detector = detector
+        self.batch_size = max(1, batch_size)
         self.n_workers = max(1, nthreads - 1)
         self.preview = preview
         self.fps = fps
@@ -160,15 +162,28 @@ class TrickPipeline:
             self.cap.release()
             self._put(self._frames, _STOP)
 
+    def _next_batch(self):
+        """Up to batch_size frames, fewer at the end of the segment, and None once it is over."""
+        batch = []
+        while len(batch) < self.batch_size:
+            item = self._get(self._frames)
+            if item is _STOP:
+                break
+            batch.append(item)
+        return batch or None
+
     def _detect(self):
-        while (item := self._get(self._frames)) is not _STOP:
-            index, frame = item
+        while (batch := self._next_batch()) is not None:
+            frames = [frame for _, frame in batch]
             try:
-                detections = self.detector(frame, self.spec.prompt, self.spec.text_threshold)
+                detections = self.detector.detect_batch(frames, self.spec.prompt, self.spec.text_threshold)
             except Exception:
-                log.exception("Detection failed on frame %d", index)
-                detections = []
-            self._put(self._detections, (index, frame, detections))
+                log.exception("Detection failed on frames %d-%d", batch[0][0], batch[-1][0])
+                detections = [[] for _ in batch]
+            for (index, frame), dets in zip(batch, detections):
+                self._put(self._detections, (index, frame, dets))
+            if len(batch) < self.batch_size:  # the reader is done
+                break
         for _ in range(self.n_workers):
             self._put(self._detections, _STOP)
 

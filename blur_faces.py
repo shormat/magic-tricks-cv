@@ -13,7 +13,7 @@ import logging
 from pathlib import Path
 
 from magic_tricks.anonymize import blur_heads
-from magic_tricks.detection import MODEL_ID, GroundingDino
+from magic_tricks.detection import DEFAULT_BATCH_SIZE, MODEL_ID, GroundingDino
 
 
 def main():
@@ -25,6 +25,8 @@ def main():
     parser.add_argument("--hold", type=float, default=0.4,
                         help="seconds a detected head stays blurred before and after its detection")
     parser.add_argument("--model", default=MODEL_ID, help="Grounding DINO model id")
+    parser.add_argument("--batch-size", type=int, default=DEFAULT_BATCH_SIZE,
+                        help="frames sent to Grounding DINO at once (lower it if the GPU runs out of memory)")
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s", datefmt="%H:%M:%S")
@@ -37,7 +39,8 @@ def main():
         out = args.out_dir / video.name
         if out.resolve() == video.resolve():
             raise SystemExit(f"Refusing to overwrite {video}")
-        blur_heads(str(video), str(out), detector, stride=args.stride, hold=args.hold, fps=args.fps)
+        blur_heads(str(video), str(out), detector, stride=args.stride, hold=args.hold, fps=args.fps,
+                   batch_size=args.batch_size)
 
 
 if __name__ == "__main__":

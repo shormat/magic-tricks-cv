@@ -12,7 +12,7 @@ from pathlib import Path
 
 from magic_tricks.annotation import Annotation
 from magic_tricks.assemble import assemble
-from magic_tricks.detection import MODEL_ID, GroundingDino
+from magic_tricks.detection import DEFAULT_BATCH_SIZE, MODEL_ID, GroundingDino
 from magic_tricks.pipeline import TrickPipeline, output_path_for
 
 ALL_TRICKS = (1, 2, 3)
@@ -36,6 +36,8 @@ def parse_args():
     parser.add_argument("--overlay", default=str(DEFAULT_OVERLAY),
                         help="green-screen video replacing the figurine in trick 2")
     parser.add_argument("--model", default=MODEL_ID, help="Grounding DINO model id")
+    parser.add_argument("--batch-size", type=int, default=DEFAULT_BATCH_SIZE,
+                        help="frames sent to Grounding DINO at once (lower it if the GPU runs out of memory)")
     parser.add_argument("--preview", action="store_true",
                         help="show the result in a window instead of writing files (press q to stop)")
     parser.add_argument("--no-assemble", action="store_true", help="do not build the final video")
@@ -64,6 +66,7 @@ def main():
                 preview=args.preview,
                 overlay_path=args.overlay,
                 fps=args.fps,
+                batch_size=args.batch_size,
             ).run()
 
         if args.preview or args.no_assemble:

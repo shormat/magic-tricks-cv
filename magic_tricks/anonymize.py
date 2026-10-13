@@ -11,6 +11,7 @@ import subprocess
 import cv2
 import numpy as np
 
+from .detection import DEFAULT_BATCH_SIZE
 from .geometry import box_area, box_center, clip_box, point_in_box, to_int_box
 
 log = logging.getLogger(__name__)
@@ -84,14 +85,26 @@ def read_frames(path, fps=None):
         cap.release()
 
 
-def detect_heads(path, detector, stride, fps=None):
+def detect_heads(path, detector, stride, fps=None, batch_size=DEFAULT_BATCH_SIZE):
     """{frame index: [head boxes]} for every `stride`-th frame (indices after resampling)."""
-    heads = {}
+    heads, batch = {}, []
+
+    def flush():
+        frames = [frame for _, frame in batch]
+        before = len(heads)
+        for (index, frame), detections in zip(batch, detector.detect_batch(frames, PROMPT, TEXT_THRESHOLD)):
+            heads[index] = find_heads(detections, frame.shape)
+        batch.clear()
+        if len(heads) // 100 > before // 100:
+            log.info("Detected heads on %d frames", len(heads))
+
     for index, frame in enumerate(read_frames(path, fps)):
         if index % stride == 0:
-            heads[index] = find_heads(detector(frame, PROMPT, TEXT_THRESHOLD), frame.shape)
-            if len(heads) % 100 == 0:
-                log.info("Detected heads on %d frames", index)
+            batch.append((index, frame))
+            if len(batch) == batch_size:
+                flush()
+    if batch:
+        flush()
     return heads
 
 
@@ -102,7 +115,7 @@ def _frame_rate(path):
     return out.stdout.strip()
 
 
-def blur_heads(src, dst, detector, stride=3, hold=0.4, fps=None):
+def blur_heads(src, dst, detector, stride=3, hold=0.4, fps=None, batch_size=DEFAULT_BATCH_SIZE):
     """Write `dst`: `src` with every detected head blurred, audio kept as is.
 
     With `fps`, the output is also resampled to that frame rate.
@@ -113,7 +126,7 @@ def blur_heads(src, dst, detector, stride=3, hold=0.4, fps=None):
     cap.release()
 
     log.info("Pass 1/2: detecting heads in %s", src)
-    heads = detect_heads(src, detector, stride, fps)
+    heads = detect_heads(src, detector, stride, fps, batch_size)
     window = int(round(hold * out_fps))
     log.info("Found heads on %d of %d sampled frames", sum(1 for b in heads.values() if b), len(heads))
 
