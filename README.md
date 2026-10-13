@@ -3,6 +3,10 @@
 A Python pipeline that adds **magic effects** to recorded videos: objects vanish, change color, grow, or follow a magic wand.
 Objects are found with **Grounding DINO** zero-shot detection (Hugging Face Transformers). The effects are built with **OpenCV**, and **ArUco markers** track the table when the camera moves.
 
+![Trick 2 with a moving camera: the ball changes color, the can grows and the figurine is replaced](assets/demo.gif)
+
+*Trick 2 with a moving camera, sped up 2×. [Full video of the three tricks](https://github.com/shormat/magic-tricks-cv/releases/download/demo-videos/magic_tricks_demo_dynamic.mp4) (165 MB). People's heads were blurred with `blur_faces.py`.*
+
 ## The tricks
 
 | # | Trick | Effect |
