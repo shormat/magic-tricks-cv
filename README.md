@@ -22,7 +22,7 @@ Every trick runs in two modes:
 reader ─▶ detector (GPU, batches) ─▶ N "analyze" workers ─▶ "render" (in order) ─▶ writer / preview
 ```
 
-- The **detector** runs Grounding DINO on every frame, in batches of 4 frames (`--batch-size`). Frames are resized and normalized on the GPU.
+- The **detector** runs Grounding DINO on every frame, in batches of 4 frames (`--batch-size`). Frames are resized and normalized on the GPU, and the model runs in float16 on CUDA.
 - The **analyze** workers extract object and marker positions in parallel.
 - **render** applies the effect frame by frame, in order, because tricks keep state between frames (touch counts, ball position, etc.).
 - Each stage sends an end-of-stream signal to the next one, so every thread stops on its own.
